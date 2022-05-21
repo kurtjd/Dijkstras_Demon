@@ -1,4 +1,4 @@
-<img src = "/images/screenshot.png?raw=true">
+<img src = "/images/screenshot.png?raw=true" height="50%" width="50%">
 
 # Dijkstra's Demon
 A quick demo I threw together to demonstrate Dijkstra's algorithm in a
