@@ -3,6 +3,9 @@ import math
 import pygame
 
 
+# Just represents a single node where dist is the distance from the start
+# (defaults to infiinity to designate it's been unvisited), prev is the node
+# leading to this node, and is_wall is as it sounds.
 class Node:
     dist = math.inf
     prev = None
@@ -17,11 +20,13 @@ GRID_SIZE = 10
 NODE_SIZE = WIDTH // GRID_SIZE
 NUM_NODES = GRID_SIZE ** 2
 BLOCKED = 9999
+
+# Create a NxN grid of nodes where N is GRID_SIZE
 nodes = [[Node() for i in range(GRID_SIZE)] for j in range(GRID_SIZE)]
 
 begin_search = False
 last_move = 0
-pause = 500
+pause = 500  # Miliseconds to wait between demon moves
 path = []
 demon_node = 0
 
@@ -32,26 +37,17 @@ pygame.display.set_caption("Dijkstra's Demon")
 
 # Demon!
 demon = pygame.image.load('images/demon.png')
-demon = pygame.transform.scale(demon, (75, 75))
+demon = pygame.transform.scale(demon, (NODE_SIZE, NODE_SIZE))
 demon_grid_pos = (0, 0)
 demon_screen_pos = (demon_grid_pos[0] * NODE_SIZE,
                     demon_grid_pos[1] * NODE_SIZE)
 
 # Marshmallow!
 marshmallow = pygame.image.load('images/marshmallow.png')
-marshmallow = pygame.transform.scale(marshmallow, (75, 75))
+marshmallow = pygame.transform.scale(marshmallow, (NODE_SIZE, NODE_SIZE))
 marshmallow_grid_pos = (GRID_SIZE // 2, GRID_SIZE // 2)
 marshmallow_screen_pos = (marshmallow_grid_pos[0] * NODE_SIZE,
                           marshmallow_grid_pos[1] * NODE_SIZE)
-
-
-def reset_nodes():
-    ''' Sets distance from start to infinity
-    and previous node to none for all nodes'''
-    for i, row in enumerate(nodes):
-        for j, node in enumerate(row):
-            node.dist = math.inf
-            node.prev = None
 
 
 def get_neighbors(coords):
@@ -79,6 +75,7 @@ def find_closest(unvisited):
     closest = math.inf
     closest_node = None
 
+    # Loop through all unvisited nodes looking for the one with least distance
     for coords in unvisited:
         node = nodes[coords[1]][coords[0]]
         if node.dist < closest:
@@ -89,23 +86,25 @@ def find_closest(unvisited):
 
 
 def get_path(start, end):
-    ''' Prints the shortest path as a list of coordinates to the terminal '''
+    ''' Returns a path as a list of coordinates from start to end '''
     path = []
     cur = end
 
+    # We start at the end, and work our way back
+    # by following the 'prev' field of the node
     while cur != start:
         path.append((cur[0], cur[1]))
         cur = nodes[cur[1]][cur[0]].prev
 
+    # Finally return a reversed version of the list (since we started at end)
     return list(reversed(path))
 
 
 def find_path(start, end):
     ''' Given start and end coordinates,
     finds the shortest path between them '''
-    visited = []
+    # Fill the unvisited list with all possible x, y pairs of nodes
     unvisited = [(i, j) for i in range(GRID_SIZE) for j in range(GRID_SIZE)]
-    reset_nodes()
 
     # Start node is 0 distance away from itself
     nodes[start[1]][start[0]].dist = 0
@@ -120,20 +119,27 @@ def find_path(start, end):
         # Investigate all neighbors
         for n in neighbors:
             node = nodes[n[1]][n[0]]
+
+            # We are using a sort of "binary" weighted graph where the distance
+            # between any two adjacent nodes is always 1, except if there is a
+            # wall in which case the distance is just some large number
+            # indicating that that path is inaccessible.
             dist = BLOCKED if node.is_wall else nodes[cur[1]][cur[0]].dist + 1
 
-            # If we can reach the neighbor more quickly from here, update that
+            # If we can reach the neighbor more quickly from here,
+            # update the neighbor with the current node as it's previous
+            # and the neighbor's distance from the start point
             if dist < node.dist:
                 node.dist = dist
                 node.prev = cur
 
         # Mark this node as visited
         unvisited.remove(cur)
-        visited.append(cur)
 
         # Get the next closest node as our next start point
         cur = find_closest(unvisited)
 
+    # We update the path variable with a list representing the shortest path
     global path
     path = get_path(start, end)
 
@@ -180,6 +186,7 @@ def handle_input():
 
 
 def move_demon():
+    ''' Moves the demon from its starting point to the marshamllow '''
     # Yuck globals I know...
     global last_move
     global demon_node
